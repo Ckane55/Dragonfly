@@ -2,7 +2,15 @@ import pika,random, time,threading
 import tkinter as tk
 import sqlite3
 import random
-con = sqlite3.connect("Transactions.db")
+import psycopg2
+con = psycopg2.connect(
+    dbname="defaultdb",  # CockroachDB default database
+    user="root",         # default user in --insecure mode
+    password="",         # no password for --insecure
+    host="localhost",
+    port=26257           # Node 1 SQL port
+)
+con.autocommit = True
 
 cur = con.cursor()
 
@@ -11,7 +19,8 @@ cur.execute("""CREATE TABLE IF NOT EXISTS Accounts (
     balance DECIMAL(12, 2) NOT NULL DEFAULT 1000
 );""")
 
-con.close()
+con.commit()
+
 
 def publish(sender,reciever,amount):
 
@@ -72,7 +81,7 @@ def rand():
 
 def acc_number():
 
-    con = sqlite3.connect("Transactions.db")
+   
     print("acc_number connection open")
     cur = con.cursor()
     
@@ -81,28 +90,28 @@ def acc_number():
         
         acc_number = rand()
 
-        cur.execute("SELECT * FROM Accounts where account_number = ?", (acc_number,))
+        cur.execute("SELECT * FROM Accounts where account_number = %s", (acc_number,))
 
         exists = cur.fetchone() is not None
 
         if exists:
             continue
         else:
-            con.execute("BEGIN TRANSACTION")
-            cur.execute("INSERT INTO Accounts (account_number, balance) VALUES (?,?)", (acc_number, 1000.00))
+            
+            cur.execute("INSERT INTO Accounts (account_number, balance) VALUES (%s,%s)", (acc_number, 1000.00))
             con.commit()
-            con.close()
+            
             print("acc_number connection closed")
             return acc_number
 
 def balance(acc_num):
     
-    con = sqlite3.connect("Transactions.db")
+    
     cur = con.cursor()
    
-    cur.execute("SELECT balance FROM Accounts WHERE account_number = ?", (acc_num,))
+    cur.execute("SELECT balance FROM Accounts WHERE account_number = %s", (acc_num,))
     balance = cur.fetchone()
-    con.close()
+    
     return balance[0]
 
 
@@ -115,13 +124,13 @@ def send(sender_acc, reciever_acc, amount_entry):
     sender = sender_acc
     reciever = int(reciever_acc.get())
     amount = int(amount_entry.get()) 
-    con = sqlite3.connect("Transactions.db")
+    
     print("Send connection opened")
     cur = con.cursor()
-    con.execute('BEGIN TRANSACTION')
+    
 
 
-    cur.execute("SELECT balance FROM Accounts WHERE account_number = ?", (sender,))
+    cur.execute("SELECT balance FROM Accounts WHERE account_number = %s", (sender,))
     balance = cur.fetchone()
     balance = balance[0]
 
@@ -129,19 +138,19 @@ def send(sender_acc, reciever_acc, amount_entry):
     if amount > balance:
         show_error("NOT ENOUGH MONEY")
         con.commit()
-        con.close()
+        
         print("Send connection closed")
         return
     
-    cur.execute("SELECT account_number FROM Accounts WHERE account_number = ?", (reciever,))
+    cur.execute("SELECT account_number FROM Accounts WHERE account_number = %s", (reciever,))
     temp = cur.fetchone()
     if not temp:
         show_error("Receiver account doesn't exist")
         con.commit()
-        con.close()
+        
         print("Send connection closed")
         return
-    con.close()
+    con.commit()
     threads(sender,reciever,amount)
      
 
@@ -158,7 +167,7 @@ def show_error(message):
 
 def give_away(acc):
 
-    con = sqlite3.connect("Transactions.db")
+   
     cur = con.cursor()
 
     cur.execute("SELECT account_number from Accounts")
@@ -169,10 +178,10 @@ def give_away(acc):
 
     count = len(num_array)
 
-    cur.execute("SELECT balance FROM Accounts WHERE account_number = ?", (acc,))
+    cur.execute("SELECT balance FROM Accounts WHERE account_number = %s", (acc,))
 
     tmp = cur.fetchall()
-    con.close()
+    con.commit()
     balance = tmp[0][0]
 
     if balance % 2 == 0:

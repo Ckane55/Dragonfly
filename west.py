@@ -2,19 +2,27 @@ import pika, time,random
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
 import threading
-import sqlite3
+import psycopg2
 
 
-con = sqlite3.connect("Transactions.db")
+con = psycopg2.connect(
+    dbname="defaultdb",  # CockroachDB default database
+    user="root",         # default user in --insecure mode
+    password="",         # no password for --insecure
+    host="localhost",
+    port=26257           # Node 1 SQL port
+)
 cur = con.cursor()
 
+con.autocommit = True
+
 cur.execute("""CREATE TABLE IF NOT EXISTS Transactions (Sender INTEGER , Reciever INTEGER, Amount INTEGER);""")
-con.close()
+
 
 #Initializing GUI
 root = tk.Tk()
 
-root.title("West transactions")
+root.title("East transactions")
 
 root.resizable(True,True)
 #Make Windows two panes, one for each subscriber
@@ -38,11 +46,11 @@ right_text.insert(tk.END, "West Processor 2\nWaiting for transactions..." + "\n"
 
 def new_balance(sender, reciever, amount):
     amount = int(amount)
-    con = sqlite3.connect("Transactions.db", timeout=10)
+    
     print("new_balance connection opened")
     cur = con.cursor()
     
-    cur.execute("SELECT balance FROM Accounts WHERE account_number = ?", (sender,))
+    cur.execute("SELECT balance FROM Accounts WHERE account_number = %s", (sender,))
     new_sender_balance = cur.fetchone()
     temp = new_sender_balance[0]
     temp2 = temp - amount
@@ -50,13 +58,13 @@ def new_balance(sender, reciever, amount):
     
 
     
-    con.execute("BEGIN TRANSACTION")
-    cur.execute("UPDATE Accounts SET balance = ? WHERE account_number = ?", (temp2,sender,))
+    #con.execute("BEGIN TRANSACTION")
+    cur.execute("UPDATE Accounts SET balance = %s WHERE account_number = %s", (temp2,sender,))
     
 
     
     
-    cur.execute("SELECT balance FROM Accounts WHERE account_number = ?", (reciever,))
+    cur.execute("SELECT balance FROM Accounts WHERE account_number = %s", (reciever,))
     new_reciever_balance = cur.fetchone()
     temp = new_reciever_balance[0]
     temp3 = temp + amount
@@ -64,9 +72,9 @@ def new_balance(sender, reciever, amount):
    
 
     
-    cur.execute("UPDATE Accounts SET balance = ? WHERE account_number = ?", (temp3,reciever,))
+    cur.execute("UPDATE Accounts SET balance = %s WHERE account_number = %s", (temp3,reciever,))
     con.commit()
-    con.close()
+    
     print("new_balance connection closed")
 
 
@@ -96,7 +104,7 @@ def consume():
 
     #Binding queue to exchange with the topics 1000-1009
     #kinda clunky but I couldnt get it to work any other way
-    for i in range(5000, 9999):
+    for i in range(5001, 9999):
         channel.queue_bind(exchange='card', queue='West', routing_key=f"card.{i}")
 
     print(' [*] Waiting for logs. To exit press CTRL+C')
@@ -130,13 +138,13 @@ def consume():
        new_balance(sender, reciever,amount)
 
        #Store values in SQLite DB
-       con = sqlite3.connect("Transactions.db",timeout = 10)
+       
        print("Callback connection opened")
        cur = con.cursor()
-       con.execute("BEGIN TRANSACTION")
-       cur.execute("INSERT INTO Transactions VALUES(?,?,?)",(sender, reciever,amount))
+       #con.execute("BEGIN TRANSACTION")
+       cur.execute("INSERT INTO Transactions VALUES(%s,%s,%s)",(sender, reciever,amount))
        con.commit()
-       con.close()
+       
        print("Callback connection closed")
 
        #Send ACK to queue when processing is done so it can assign a new task
@@ -145,7 +153,7 @@ def consume():
     #Enables Fair Dispatch, if one processor is busy, send to other processor
     channel.basic_qos(prefetch_count=1)
 
-    #Calls callback when a message is recieved in the West Queue
+    #Calls callback when a message is recieved in the East Queue
     channel.basic_consume(
         queue='West', on_message_callback=callback, auto_ack=False)
 
@@ -154,12 +162,6 @@ def consume():
     channel.start_consuming()
     #finally:
         #con.close()
-
-
-
-
-
-        
 def consume2():
     #Connecting to DB
     
@@ -181,7 +183,7 @@ def consume2():
 
     #Binding queue to exchange with the topics 1000-1009
     #kinda clunky but I couldnt get it to work any other way
-    for i in range(5000, 9999):
+    for i in range(5001, 9999):
         channel.queue_bind(exchange='card', queue='West', routing_key=f"card.{i}")
 
     print(' [*] Waiting for logs. To exit press CTRL+C')
@@ -215,13 +217,13 @@ def consume2():
        new_balance(sender, reciever,amount)
 
        #Store values in SQLite DB
-       con = sqlite3.connect("Transactions.db",timeout = 10)
+       
        print("Callback connection opened")
        cur = con.cursor()
-       con.execute("BEGIN TRANSACTION")
-       cur.execute("INSERT INTO Transactions VALUES(?,?,?)",(sender, reciever,amount))
+      #con.execute("BEGIN TRANSACTION")
+       cur.execute("INSERT INTO Transactions VALUES(%s,%s,%s)",(sender, reciever,amount))
        con.commit()
-       con.close()
+       
        print("Callback connection closed")
 
        #Send ACK to queue when processing is done so it can assign a new task
@@ -235,9 +237,10 @@ def consume2():
         queue='West', on_message_callback=callback, auto_ack=False)
 
     #Try Finally function to close DB connection after all transactions have been processed
-    
+    #try:
     channel.start_consuming()
-  
+    #finally:
+        #con.close()
 
     
 #runs Consume() and Consume2() in their own threads
