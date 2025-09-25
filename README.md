@@ -53,7 +53,7 @@ docker exec -it node1 cockroach init --insecure --host=node1:26257
 
 
 #Step 4
-Create 4 terminals in VScode and run all 4 commands in each terminal
+Create 4 terminals in VScode and each command:
 
 Create 2 Publisher instances
 ```bash
