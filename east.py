@@ -26,20 +26,15 @@ root.title("East transactions")
 
 root.resizable(True,True)
 #Make Windows two panes, one for each subscriber
-paned = tk.PanedWindow(root, orient=tk.HORIZONTAL, sashrelief=tk.RAISED)
+mainWindow = tk.Text(root,wrap="word")
+mainWindow.pack(expand=True, fill="both")
 
-paned.pack(fill=tk.BOTH, expand=True)
+mainWindow.tag_configure("Red", foreground="red")
 
-#Left Panel
-left_text = ScrolledText(paned, font=("Arial", 14))
-paned.add(left_text)
 
-#Right Panel
-right_text = ScrolledText(paned, font=("Arial", 14))
-paned.add(right_text)
 
-left_text.insert(tk.END, "East Processor 1\nWaiting for transactions..." + "\n")
-right_text.insert(tk.END, "East Processor 2\nWaiting for transactions..." + "\n")
+mainWindow.insert(tk.END, "East Processor 1\nWaiting for transactions..." + "\n")
+mainWindow.insert(tk.END, "East Processor 2\nWaiting for transactions..." + "\n","Red")
 
 #counter = 0
 
@@ -128,8 +123,8 @@ def consume():
        message = f"Transaction: From {sender} To: {reciever} Amount: ${amount}"
        
        #Displayed to right panel
-       right_text.insert(tk.END, message + "\n")
-       right_text.yview(tk.END)
+       mainWindow.insert(tk.END, message + "\n","Red")
+       mainWindow.yview(tk.END)
 
        #Sleep function to simulate various processing times
        rand3 = random.randint(0,4)
@@ -207,8 +202,8 @@ def consume2():
        message = f"Transaction: From {sender} To: {reciever} Amount: ${amount}"
        
        #Displayed to right panel
-       left_text.insert(tk.END, message + "\n")
-       left_text.yview(tk.END)
+       mainWindow.insert(tk.END, message + "\n")
+       mainWindow.yview(tk.END)
 
        #Sleep function to simulate various processing times
        rand3 = random.randint(0,4)

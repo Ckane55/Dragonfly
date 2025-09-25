@@ -167,29 +167,30 @@ def show_error(message):
 
 def give_away(acc):
 
-   
-    cur = con.cursor()
+   for x in range(3):
+       
+        cur = con.cursor()
 
-    cur.execute("SELECT account_number from Accounts")
+        cur.execute("SELECT account_number from Accounts")
 
-    accounts = cur.fetchall()
-    
-    num_array = [a[0] for a in accounts]
+        accounts = cur.fetchall()
+        
+        num_array = [a[0] for a in accounts]
 
-    count = len(num_array)
+        count = len(num_array)
 
-    cur.execute("SELECT balance FROM Accounts WHERE account_number = %s", (acc,))
+        cur.execute("SELECT balance FROM Accounts WHERE account_number = %s", (acc,))
 
-    tmp = cur.fetchall()
-    con.commit()
-    balance = tmp[0][0]
+        tmp = cur.fetchall()
+        con.commit()
+        balance = tmp[0][0]
 
-    if balance % 2 == 0:
-        for i in num_array:
-            publish(acc,i,2)
-    else:
-        for i in num_array:
-            publish(acc,i,1)
+        if balance % 2 == 0:
+            for i in num_array:
+                publish(acc,i,2)
+        else:
+            for i in num_array:
+                publish(acc,i,1)
 
 
 
@@ -212,33 +213,60 @@ class UI():
         self.root = tk.Tk()
         self.root.title("MainWindow")
         self.root.geometry("500x500")
-        account = acc_number()
-        self.label = tk.Label(self.root, text=f'Bank account number ****{account}')
-        self.label.pack(anchor='w',pady=10, padx=20)
-        money = balance(account)
-        self.label2 = tk.Label(self.root, text=f'Balance: {money}')
-        self.label2.pack(anchor='w', padx=20)
+        self.root.configure(bg="gray")
 
-        self.input_label = tk.Label(self.root,text="Account Number")
-        self.input_label.pack(anchor='w', padx=20,pady=10)
+        account = acc_number()
+        self.label = tk.Label(self.root, text=f'Bank account number ****{account}', bg="Gray", foreground="White",font=("Ariel",20))
+        #self.label.pack(anchor='w',pady=10, padx=20)
+        money = balance(account)
+        self.label2 = tk.Label(self.root, text=f'Balance: {money}', bg= "Gray", foreground="White",font=("Ariel",16,"bold"))
+        #self.label2.pack(anchor='w', padx=20)
+        self.label.grid(row=0, column=0,sticky="w", padx=5, pady=10)
+        self.label2.grid(row=1, column=0, sticky="w",padx=5, pady=10)
+
+
+
+
+        self.input_label = tk.Label(self.root,text="Account Number",bg="Gray", foreground="white", font=("Ariel", 12))
+        
+        self.input_label.grid(row=2, column=0,sticky="w", padx=5, pady=10)
+       
 
         self.input_number = tk.Entry(self.root, width=30)
-        self.input_number.pack(anchor='w', padx=20)
+        self.input_number.grid(row=3, column=0,sticky="w", padx=5, pady=5)
+    
 
-        self.input_label2 = tk.Label(self.root, text="Amount:")
-        self.input_label2.pack(anchor='w', padx=20, pady=10)
+        self.input_label2 = tk.Label(self.root, text="Amount:",bg="Gray",foreground="White",font=("Ariel", 12))
+        self.input_label2.grid(row=4, column=0,sticky="w", padx=5, pady=0)
+
 
         self.input_number2 = tk.Entry(self.root, width=30)
-        self.input_number2.pack(anchor='w', padx=20)
+        self.input_number2.grid(row=5, column=0,sticky="w", padx=5, pady=10)
 
-        self.publish = tk.Button(self.root,text="Send", command=lambda:send(account, self.input_number, self.input_number2))
-        self.publish.pack(pady=10)
+        button_frame = tk.Frame(self.root, bg="gray")
+        button_frame.grid(row=6, column=0, sticky="w", padx=5, pady=5, columnspan=3)
 
-        self.refresh = tk.Button(self.root,text="Refresh", command=lambda:self.update_balance(account))
-        self.refresh.pack(pady=30)
+        self.publish = tk.Button(button_frame,text="Send", command=lambda:send(account, self.input_number, self.input_number2))
+        self.publish.grid(row=6, column=0,sticky="w", padx=5, pady=0)
 
-        self.random = tk.Button(self.root, text = "Give money to each account", command=lambda:give_away(account))
-        self.random.pack(pady=40)
+
+        self.refresh = tk.Button(button_frame,text="Refresh", command=lambda:self.update_balance(account))
+        self.refresh.grid(row=6, column=1,sticky="w", padx=5, pady=0)
+
+
+        self.random = tk.Button(button_frame, text = "Give money to each account", command=lambda:give_away(account))
+        self.random.grid(row=6, column=2,sticky="w", padx=5, pady=0)
+
+        self.root.grid_columnconfigure(0, weight=0)
+        self.root.grid_columnconfigure(1, weight=0)
+        self.root.grid_columnconfigure(2, weight=0)
+
+ 
+        
+        
+        
+        
+        
 
     def update_balance(self,account):
         money = balance(account)
